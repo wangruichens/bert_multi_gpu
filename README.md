@@ -22,22 +22,24 @@ Base bert模型采用的是[中文预训练BERT-wwm-ext](https://github.com/ymcu
 | **RoBERTa-wwm-ext** | **67.4 (66.5) / 87.2 (86.5)** | **72.6 (71.4) / 89.4 (88.8)** | **26.2 (24.6) / 51.0 (49.1)** |
 
 ## 用两块1080ti做的bert fine tune
+
+gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case。两块可以提升到每秒110个case左右。(batch size = 32)
+
 ![img](img/gpu.png)
 
-一块1080ti大概每秒可以训练60个case。两块可以提升到每秒110个case左右。(batch size = 32)
-![img](img/globalstep.png)
 
-## 一些样本数据
+## bert样本数据
 ![img](img/example.png)
 
 ## 模型结果评估
 结果表：
 ![img](img/res.png)
 
-tensorboard中看到，模型还是缓慢收敛的。
-![img](img/loss.png)
+训练了大概5个小时。可以看出模型还是在缓慢收敛的。
 
-1392是‘吃’
+![img](img/globalstep.png)![img](img/loss.png)
+
+模型 embedding projector
 ![img](img/emb.png)
 
 ### eval的结果
@@ -48,6 +50,8 @@ tensorboard中看到，模型还是缓慢收敛的。
 
 ROC曲线
 ![img](img/eval2.png)
+
+## 主要代码修改
 
 主要修改run_classifier.py
 
