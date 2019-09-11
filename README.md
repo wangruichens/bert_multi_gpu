@@ -4,9 +4,7 @@
 
 Base bert模型采用的是[中文预训练BERT-wwm-ext](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
 
-我的下游任务为文本点击率分级。输入为文章标题，希望能找到其与点击率CTR的关系。
-
-个人认为需要模型能够理解语义，判断出究竟哪些标题更吸引人，而不是像word2vec，lda等其他算法学到统计学的特征。
+我的下游任务为文本点击率分级。输入为文章标题，希望能找到其与点击率CTR的关系。个人认为需要模型能够理解语义，判断出究竟哪些标题更吸引人，而不是像word2vec，lda等其他算法学到统计学的特征。
 
 
 ### 模型基线：简体中文阅读理解：CMRC 2018
@@ -37,15 +35,11 @@ gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case�
 
 训练了大概5个小时。可以看出模型还是在缓慢收敛的。
 
-![img](img/globalstep.png)![img](img/loss.png)
-
-模型 embedding projector
-![img](img/emb.png)
+![img](img/globalstep.png) ![img](img/loss.png)
 
 ### eval的结果
 
-模型的各项指标：
-顺便把各种指标的定义也截图在这里，温故而知新。
+模型指标，顺便把各种指标的定义也截图在这里，温故而知新。
 ![img](img/eval1.png)
 
 ROC曲线
@@ -53,7 +47,71 @@ ROC曲线
 
 ## 主要代码修改
 
-主要修改run_classifier.py
+主要修改run_custom_classifier.py, 实现InfoProcessor类。
+```python
+class InfoProcessor(DataProcessor):
+	"""Base class for data converters for sequence classification data sets."""
+
+	def get_train_examples(self, data_dir):
+		"""Gets a collection of `InputExample`s for the train set."""
+		return self._create_examples(
+			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
+
+	def get_dev_examples(self, data_dir):
+		"""Gets a collection of `InputExample`s for the dev set."""
+		return self._create_examples(
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
+
+	def get_test_examples(self, data_dir):
+		"""Gets a collection of `InputExample`s for prediction."""
+		return self._create_examples(
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',',do_predict = True), "test")
+
+	def get_labels(self):
+		"""Gets the list of labels for this data set."""
+		return ["0", "1", "2"]
+
+	def _create_examples(self, lines, set_type):
+		"""Creates examples for the training and dev sets."""
+		examples = []
+		for (i, line) in enumerate(lines):
+			if i == 0:
+				continue
+			guid = "%s-%s" % (set_type, i)
+			text_a = tokenization.convert_to_unicode(line[1])
+			if set_type == "test":
+				label = "0"
+			else:
+				label = tokenization.convert_to_unicode(line[2])
+			examples.append(
+				InputExample(guid = guid, text_a = text_a, label = label))
+		return examples
+```
+
+运行脚本
+
+```angular2
+python ./bert_my/run_custom_classifier.py \
+  --task_name=info \
+  --do_lower_case=true  \
+  --do_train=false  \
+  --do_eval=false  \
+  --do_predict=true  \
+  --save_for_serving=true  \
+  --data_dir=./  \
+  --vocab_file=./bert_model_wwm/vocab.txt  \
+  --bert_config_file=./bert_model_wwm/bert_config.json  \
+  --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
+  --max_seq_length=128 \
+  --train_batch_size=32 \
+  --learning_rate=2e-5 \
+  --num_train_epochs=3.0 \
+  --use_gpu=true \
+  --num_gpu_cores=2 \
+  --use_fp16=true \
+  --output_dir=./output
+```
+
 
 
 
