@@ -1,5 +1,7 @@
 # bert_multi_gpu
 
+### Transformer考上了北京大学；CNN进了中等技术学校，希望有一天能够考研考进北京大学；RNN在百货公司当售货员：我们都有看似光明的前途。
+
 ## 基本介绍
 
 Base bert模型采用的是[中文预训练BERT-wwm-ext](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
