@@ -482,21 +482,35 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 		use_one_hot_embeddings = use_one_hot_embeddings,
 		comp_type = comp_type)
 
-	# In the demo, we are doing a simple classification task on the entire
-	# segment.
-	#
-	# If you want to use the token-level output, use model.get_sequence_output()
-	# instead.
-	output_layer = model.get_pooled_output()
+	# `sequence_output` shape = [batch_size, seq_length, hidden_size].
+	output_layer = model.get_sequence_output()
+	max_seq_length = output_layer.shape[1].value
 
-	hidden_size = output_layer.shape[-1].value
+	# Ideal order : conv -> bn -> activation -> max pooling -> dropout
+	# Same as : conv -> bn -> max pooling -> activation -> dropout [faster]
+	# Since ReLU is monotonic (if a > b, ReLU(a) >= ReLU(b)).
+	with tf.name_scope('cnn'):
+		pooled_outputs = []
+		filter_sizes = [2, 3, 4]
+		num_filters = 6
+		for i, filter_size in enumerate(filter_sizes):
+			with tf.variable_scope("conv-maxpool-%s" % filter_size, reuse = False):
+				# conv
+				conv = tf.layers.conv1d(output_layer, num_filters, filter_size, name = 'conv1d')
+				# bn
+				# max pooling
+				#  `channels_last` corresponds to inputs with shape `(batch, length, channels)`
+				#   while `channels_first` corresponds to inputs with shape `(batch, channels, length)`.
+				pooled= tf.layers.max_pooling1d(conv, pool_size = 5, strides = 5, data_format = 'channels_last')
 
-	output_weights = tf.get_variable(
-		"output_weights", [num_labels, hidden_size],
-		initializer = tf.truncated_normal_initializer(stddev = 0.02))
+				pooled_outputs.append(pooled)
 
-	output_bias = tf.get_variable(
-		"output_bias", [num_labels], initializer = tf.zeros_initializer())
+				# activation
+				# dropout
+
+		num_filters_total = num_filters * len(filter_sizes)
+		h_pool = tf.concat(pooled_outputs, 1)
+		outputs = tf.reshape(h_pool, [-1, num_filters_total])
 
 	with tf.variable_scope("loss"):
 		if is_training:

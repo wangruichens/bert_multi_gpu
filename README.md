@@ -106,13 +106,20 @@ python ./bert_my/run_custom_classifier.py \
   --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
   --max_seq_length=128 \
   --train_batch_size=32 \
-  --learning_rate=2e-5 \
+  --learning_rate=2e-5 \z
   --num_train_epochs=3.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
   --output_dir=./output
 ```
+
+### CNN 的一般顺序
+可以参考[这里](https://www.quora.com/In-most-papers-I-read-the-CNN-order-is-convolution-relu-max-pooling-So-can-I-change-the-order-to-become-convolution-max-pooling-relu)和[这里](https://miracleyoo.tech/2018/08/21/layer-order/)
+
+    # Ideal order : conv -> bn -> activation -> max pooling -> dropout -> dense(softmax)
+    # Same as : conv -> bn -> max pooling -> activation -> dropout -> dense(softmax) [faster]
+    # Since ReLU is monotonic (if a > b, ReLU(a) >= ReLU(b)).
 
 ## Sevrving as service
 
