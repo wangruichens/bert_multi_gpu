@@ -31,69 +31,28 @@ gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case�
 ## bert样本数据
 ![img](img/example.png)
 
-## 模型结果评估
-结果表：
+
+## 示例结果：
 ![img](img/res.png)
 
-训练了大概5个小时。可以看出模型还是在缓慢收敛的。
-
-![img](img/globalstep.png) ![img](img/loss.png)
-
-### eval的结果
-
-模型指标，顺便把各种指标的定义也截图在这里，温故而知新。
-![img](img/eval1.png)
-
-ROC曲线
-![img](img/eval2.png)
+# 模型结构 & 结果评估
+---
+Model Architecture     |AUC| Accuracy | Eval Loss | Precision |
+--------------|-------: |---------------:|-----------:|-----------:
+Bert + LR       | 0.8369  | 0.7668         |  0.4514   | 0.5760
+Bert + CNN       | 0.8243  |  0.7807    |  0.4489 | 0.6070
 
 ## 主要代码修改
+具体细节参考 
+- bert_my/run_classifier_lr.py
+- bert_my/run_classifier_cnn.py
+- bert_my/run_classifier_rcnn.py
 
-主要修改run_custom_classifier.py, 实现InfoProcessor类。
-```python
-class InfoProcessor(DataProcessor):
-	"""Base class for data converters for sequence classification data sets."""
+实现InfoProcessor类与部分模型改动。
 
-	def get_train_examples(self, data_dir):
-		"""Gets a collection of `InputExample`s for the train set."""
-		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
-
-	def get_dev_examples(self, data_dir):
-		"""Gets a collection of `InputExample`s for the dev set."""
-		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
-
-	def get_test_examples(self, data_dir):
-		"""Gets a collection of `InputExample`s for prediction."""
-		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',',do_predict = True), "test")
-
-	def get_labels(self):
-		"""Gets the list of labels for this data set."""
-		return ["0", "1", "2"]
-
-	def _create_examples(self, lines, set_type):
-		"""Creates examples for the training and dev sets."""
-		examples = []
-		for (i, line) in enumerate(lines):
-			if i == 0:
-				continue
-			guid = "%s-%s" % (set_type, i)
-			text_a = tokenization.convert_to_unicode(line[1])
-			if set_type == "test":
-				label = "0"
-			else:
-				label = tokenization.convert_to_unicode(line[2])
-			examples.append(
-				InputExample(guid = guid, text_a = text_a, label = label))
-		return examples
-```
-
-运行脚本
-
+### 模型1： BERT+LR
 ```angular2
-python ./bert_my/run_custom_classifier.py \
+python ./bert_my/run_classifier_lr.py \
   --task_name=info \
   --do_lower_case=true  \
   --do_train=false  \
@@ -104,17 +63,75 @@ python ./bert_my/run_custom_classifier.py \
   --vocab_file=./bert_model_wwm/vocab.txt  \
   --bert_config_file=./bert_model_wwm/bert_config.json  \
   --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
-  --max_seq_length=128 \
+  --max_seq_length=64 \
   --train_batch_size=32 \
-  --learning_rate=2e-5 \z
-  --num_train_epochs=3.0 \
+  --learning_rate=2e-5 \
+  --num_train_epochs=1.0 \
+  --use_gpu=true \
+  --num_gpu_cores=2 \
+  --use_fp16=true \
+  --output_dir=./output_lr
+```
+
+#### 训练loss
+![img](img/loss1.png)
+
+#### eval的结果
+
+模型指标
+
+![img](img/eval1.png)
+
+ROC曲线
+
+![img](img/roc1.png)
+
+TPR-FPR-Threshold 曲线
+
+![img](img/tpr1.png)
+
+### 模型2： BERT+CNN
+```angular2
+python ./bert_my/run_classifier_cnn.py \
+  --task_name=info \
+  --do_lower_case=true  \
+  --do_train=false  \
+  --do_eval=true  \
+  --do_predict=true  \
+  --save_for_serving=true  \
+  --data_dir=./  \
+  --vocab_file=./bert_model_wwm/vocab.txt  \
+  --bert_config_file=./bert_model_wwm/bert_config.json  \
+  --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
+  --max_seq_length=64 \
+  --train_batch_size=32 \
+  --learning_rate=2e-5 \
+  --num_train_epochs=5.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
   --output_dir=./output
 ```
 
-### CNN 的一般顺序
+#### 训练loss
+![img](img/loss2.png)
+
+#### eval的结果
+
+模型指标
+
+![img](img/eval2.png)
+
+ROC曲线
+
+![img](img/roc2.png)
+
+TPR-FPR-Threshold 曲线
+
+![img](img/tpr2.png)
+
+
+### 附：模型一些基本操作的顺序
 可以参考[这里](https://www.quora.com/In-most-papers-I-read-the-CNN-order-is-convolution-relu-max-pooling-So-can-I-change-the-order-to-become-convolution-max-pooling-relu)和[这里](https://miracleyoo.tech/2018/08/21/layer-order/)
 
     # Ideal order : conv -> bn -> activation -> max pooling -> dropout -> dense(softmax)

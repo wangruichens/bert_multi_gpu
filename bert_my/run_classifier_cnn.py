@@ -219,16 +219,16 @@ class DataProcessor(object):
 			reader = csv.reader(f, delimiter = delimiter, quotechar = quotechar)
 			lines = []
 			for line in reader:
-				if len(line) == 3:
+				if len(line) == 3 and len(line[1]) > 5:
 					lines.append(line)
 			if do_predict:
+
 				with tf.gfile.GFile('predict_raw.csv', "w") as writer:
 					tf.logging.info("***** Predict raw data *****")
-					index = -1
+					tf.logging.info(f"***** {len(lines)} *****")
 					for l in lines:
 						output_line = ",".join(l[1:]) + "\n"
-						writer.write(str(index) + ',' + output_line)
-						index += 1
+						writer.write(output_line)
 			return lines
 
 
@@ -259,8 +259,8 @@ class InfoProcessor(DataProcessor):
 		"""Creates examples for the training and dev sets."""
 		examples = []
 		for (i, line) in enumerate(lines):
-			if i == 0:
-				continue
+			# if i == 0:
+			# 	continue
 			guid = "%s-%s" % (set_type, i)
 			text_a = tokenization.convert_to_unicode(line[1])
 			if set_type == "test":
@@ -492,7 +492,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 	with tf.name_scope('cnn'):
 		pooled_outputs = []
 		filter_sizes = [2, 3, 4]
-		num_filters = 6
+		num_filters = 768
 		for i, filter_size in enumerate(filter_sizes):
 			with tf.variable_scope("conv-maxpool-%s" % filter_size, reuse = False):
 				# conv
@@ -501,29 +501,30 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 				# max pooling
 				#  `channels_last` corresponds to inputs with shape `(batch, length, channels)`
 				#   while `channels_first` corresponds to inputs with shape `(batch, channels, length)`.
-				pooled= tf.layers.max_pooling1d(conv, pool_size = 5, strides = 5, data_format = 'channels_last')
-
+				# pooled= tf.layers.max_pooling1d(conv, pool_size = 5, strides = 5, data_format = 'channels_last')
+				pooled = tf.reduce_max(conv, axis = [1], name = 'max_pooling')
 				pooled_outputs.append(pooled)
 
-				# activation
-				# dropout
+			# activation
+			# dropout
 
 		num_filters_total = num_filters * len(filter_sizes)
 		h_pool = tf.concat(pooled_outputs, 1)
 		outputs = tf.reshape(h_pool, [-1, num_filters_total])
 
-	with tf.variable_scope("loss"):
+	with tf.name_scope('dropouts'):
+		net = tf.layers.dense(outputs, 256, name = 'fc1', activation = tf.nn.relu)
 		if is_training:
-			# I.e., 0.1 dropout
-			output_layer = tf.nn.dropout(output_layer, keep_prob = 0.9)
+			net = tf.nn.dropout(net, 0.5)
 
-		logits = tf.matmul(output_layer, output_weights, transpose_b = True)
-		logits = tf.nn.bias_add(logits, output_bias)
-		probabilities = tf.nn.softmax(logits, axis = -1)
+	with tf.name_scope('logits'):
+		logits = tf.layers.dense(net, num_labels, name = 'logits')
+		probabilities = tf.nn.softmax(logits)
 		log_probs = tf.nn.log_softmax(logits, axis = -1)
+	# y_pred_cls = tf.argmax(tf.nn.softmax(logits), 1)
 
+	with tf.variable_scope("loss"):
 		one_hot_labels = tf.one_hot(labels, depth = num_labels, dtype = tf.float32)
-
 		per_example_loss = -tf.reduce_sum(one_hot_labels * log_probs, axis = -1)
 		loss = tf.reduce_mean(per_example_loss)
 
@@ -783,6 +784,7 @@ def main(_):
 			log_step_count_steps = log_every_n_steps,
 			model_dir = FLAGS.output_dir,
 			save_checkpoints_steps = FLAGS.save_checkpoints_steps)
+
 	else:
 		tf.logging.info("Use TPURunConfig")
 		run_config = tf.contrib.tpu.RunConfig(
@@ -902,6 +904,7 @@ def main(_):
 
 	if FLAGS.do_predict:
 		predict_examples = processor.get_test_examples(FLAGS.data_dir)
+		print(f'----------------------{len(predict_examples)}---------------')
 		num_actual_predict_examples = len(predict_examples)
 		if FLAGS.use_tpu:
 			# TPU requires a fixed batch size for all batches, therefore the number
