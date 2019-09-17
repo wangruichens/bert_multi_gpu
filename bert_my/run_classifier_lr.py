@@ -219,13 +219,11 @@ class DataProcessor(object):
 			reader = csv.reader(f, delimiter = delimiter, quotechar = quotechar)
 			lines = []
 			for line in reader:
-				if len(line) == 3 and len(line[1]) > 5:
+				if len(line) == 3:
 					lines.append(line)
 			if do_predict:
-
 				with tf.gfile.GFile('predict_raw.csv', "w") as writer:
 					tf.logging.info("***** Predict raw data *****")
-					tf.logging.info(f"***** {len(lines)} *****")
 					for l in lines:
 						output_line = ",".join(l[1:]) + "\n"
 						writer.write(output_line)
@@ -240,17 +238,17 @@ class InfoProcessor(DataProcessor):
 	def get_train_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the train set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
+			self._read_tsv(os.path.join(data_dir, "train2.csv"), delimiter = ','), "train")
 
 	def get_dev_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the dev set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
+			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ','), "eval")
 
 	def get_test_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for prediction."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',',do_predict = True), "test")
+			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ',',do_predict = True), "test")
 
 	def get_labels(self):
 		"""Gets the list of labels for this data set."""

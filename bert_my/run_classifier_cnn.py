@@ -219,7 +219,7 @@ class DataProcessor(object):
 			reader = csv.reader(f, delimiter = delimiter, quotechar = quotechar)
 			lines = []
 			for line in reader:
-				if len(line) == 3 and len(line[1]) > 5:
+				if len(line) == 3 :
 					lines.append(line)
 			if do_predict:
 
@@ -239,17 +239,17 @@ class InfoProcessor(DataProcessor):
 	def get_train_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the train set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
+			self._read_tsv(os.path.join(data_dir, "train2.csv"), delimiter = ','), "train")
 
 	def get_dev_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the dev set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
+			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ','), "eval")
 
 	def get_test_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for prediction."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',', do_predict = True), "test")
+			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ',', do_predict = True), "test")
 
 	def get_labels(self):
 		"""Gets the list of labels for this data set."""
@@ -491,31 +491,33 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 	# Since ReLU is monotonic (if a > b, ReLU(a) >= ReLU(b)).
 	with tf.name_scope('cnn'):
 		pooled_outputs = []
-		filter_sizes = [2, 3, 4]
-		num_filters = 768
+		filter_sizes = [1, 2, 3, 4]
+		num_filters = 256
 		for i, filter_size in enumerate(filter_sizes):
 			with tf.variable_scope("conv-maxpool-%s" % filter_size, reuse = False):
 				# conv
-				conv = tf.layers.conv1d(output_layer, num_filters, filter_size, name = 'conv1d')
+				conv = tf.layers.conv1d(output_layer, num_filters, filter_size, name = 'conv1d',activation=tf.nn.relu)
 				# bn
 				# max pooling
+
 				#  `channels_last` corresponds to inputs with shape `(batch, length, channels)`
 				#   while `channels_first` corresponds to inputs with shape `(batch, channels, length)`.
 				# pooled= tf.layers.max_pooling1d(conv, pool_size = 5, strides = 5, data_format = 'channels_last')
+
 				pooled = tf.reduce_max(conv, axis = [1], name = 'max_pooling')
 				pooled_outputs.append(pooled)
 
-			# activation
-			# dropout
+		# activation
+		# dropout
 
 		num_filters_total = num_filters * len(filter_sizes)
 		h_pool = tf.concat(pooled_outputs, 1)
-		outputs = tf.reshape(h_pool, [-1, num_filters_total])
+		net = tf.reshape(h_pool, [-1, num_filters_total])
 
 	with tf.name_scope('dropouts'):
-		net = tf.layers.dense(outputs, 256, name = 'fc1', activation = tf.nn.relu)
+		# net = tf.layers.dense(net, 256, name = 'fc1', activation = tf.nn.relu)
 		if is_training:
-			net = tf.nn.dropout(net, 0.5)
+			net = tf.nn.dropout(net, keep_prob=0.9)
 
 	with tf.name_scope('logits'):
 		logits = tf.layers.dense(net, num_labels, name = 'logits')
@@ -904,7 +906,6 @@ def main(_):
 
 	if FLAGS.do_predict:
 		predict_examples = processor.get_test_examples(FLAGS.data_dir)
-		print(f'----------------------{len(predict_examples)}---------------')
 		num_actual_predict_examples = len(predict_examples)
 		if FLAGS.use_tpu:
 			# TPU requires a fixed batch size for all batches, therefore the number

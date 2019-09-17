@@ -37,10 +37,10 @@ gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case�
 
 # 模型结构 & 结果评估
 ---
-Model Architecture     |AUC| Accuracy | Eval Loss | Precision |
---------------|-------: |---------------:|-----------:|-----------:
-Bert + LR       | 0.8369  | 0.7668         |  0.4514   | 0.5760
-Bert + CNN       | 0.8243  |  0.7807    |  0.4489 | 0.6070
+Model Architecture     |AUC| Accuracy | Eval Loss | 
+--------------|-------: |---------------:|-----------:
+Bert + LR       | 0.8935  | 0.8056         |  0.4195   
+Bert + CNN       | 0.8948  |  0.8092    |  0.4495 
 
 ## 主要代码修改
 具体细节参考 
@@ -51,12 +51,17 @@ Bert + CNN       | 0.8243  |  0.7807    |  0.4489 | 0.6070
 实现InfoProcessor类与部分模型改动。
 
 ### 模型1： BERT+LR
+
+使用[CLS]作为句子embedding，[CLS]在pre-train阶段由NSP任务生成。需要接下来fine-tune来完成句子分类。实际上只用[CLS]就能达到很好的效果。
+
+- 论文原注释：The vector C is not meaningful sentence representation without fine-tuning, since it was trained with NSP.
+
 ```angular2
 python ./bert_my/run_classifier_lr.py \
   --task_name=info \
   --do_lower_case=true  \
-  --do_train=false  \
-  --do_eval=false  \
+  --do_train=true  \
+  --do_eval=true  \
   --do_predict=true  \
   --save_for_serving=true  \
   --data_dir=./  \
@@ -66,7 +71,7 @@ python ./bert_my/run_classifier_lr.py \
   --max_seq_length=64 \
   --train_batch_size=32 \
   --learning_rate=2e-5 \
-  --num_train_epochs=1.0 \
+  --num_train_epochs=4.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
@@ -79,8 +84,14 @@ python ./bert_my/run_classifier_lr.py \
 #### eval的结果
 
 模型指标
-
-![img](img/eval1.png)
+```python
+accuracy = (tp+tn)/n
+precision = tp / (tp+fp)
+recall = tp / (tp+fn)
+F1 = (2*precision*recall) / (precision+recall)
+tpr = tp / (tp+fn)
+fpr = fp / (fp+tn)
+```
 
 ROC曲线
 
@@ -91,11 +102,12 @@ TPR-FPR-Threshold 曲线
 ![img](img/tpr1.png)
 
 ### 模型2： BERT+CNN
+![img](img/textcnn.png)
 ```angular2
 python ./bert_my/run_classifier_cnn.py \
   --task_name=info \
   --do_lower_case=true  \
-  --do_train=false  \
+  --do_train=true  \
   --do_eval=true  \
   --do_predict=true  \
   --save_for_serving=true  \
@@ -104,13 +116,13 @@ python ./bert_my/run_classifier_cnn.py \
   --bert_config_file=./bert_model_wwm/bert_config.json  \
   --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
   --max_seq_length=64 \
-  --train_batch_size=32 \
+  --train_batch_size=64 \
   --learning_rate=2e-5 \
-  --num_train_epochs=5.0 \
+  --num_train_epochs=4.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
-  --output_dir=./output
+  --output_dir=./output_cnn
 ```
 
 #### 训练loss
@@ -119,8 +131,14 @@ python ./bert_my/run_classifier_cnn.py \
 #### eval的结果
 
 模型指标
-
-![img](img/eval2.png)
+```python
+accuracy = (tp+tn)/n
+precision = tp / (tp+fp)
+recall = tp / (tp+fn)
+F1 = (2*precision*recall) / (precision+recall)
+tpr = tp / (tp+fn)
+fpr = fp / (fp+tn)
+```
 
 ROC曲线
 
