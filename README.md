@@ -52,6 +52,8 @@ RoBerta_wwm + TextCNN       | 0.91947  |  0.8357    |  0.4103
 
 实现InfoProcessor类与部分模型改动。
 
+模型都在20w左右的训练集上跑了4个epoch。
+
 # 模型1： BERT+LR
 
 使用[CLS]作为句子embedding，[CLS]在pre-train阶段由NSP任务生成。需要接下来fine-tune来完成句子分类。实际上只用[CLS]就能达到很好的效果。
