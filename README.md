@@ -2,9 +2,9 @@
 
 ### Transformer考上了北京大学；CNN进了中等技术学校；RNN在百货公司当售货员：我们都有光明的前途。
 
-## 基本介绍
+# 基本介绍
 
-Base bert模型采用的是[中文预训练BERT-wwm-ext](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
+Base bert模型采用的是[中文预训练RoBERTa_wwm](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
 
 我的下游任务为文本点击率分级。输入为文章标题，希望能找到其与点击率CTR的关系。个人认为需要模型能够理解语义，判断出究竟哪些标题更吸引人，而不是像word2vec，lda等其他算法学到统计学的特征。
 
@@ -21,40 +21,46 @@ Base bert模型采用的是[中文预训练BERT-wwm-ext](https://github.com/ymcu
 | **BERT-wwm-ext** | 67.1 (65.6) / 85.7 (85.0) | 71.4 (70.0) / 87.7 (87.0) | 24.0 (20.0) / 47.3 (44.6) |
 | **RoBERTa-wwm-ext** | **67.4 (66.5) / 87.2 (86.5)** | **72.6 (71.4) / 89.4 (88.8)** | **26.2 (24.6) / 51.0 (49.1)** |
 
-## 用两块1080ti做的bert fine tune
+### 用两块1080ti做的bert fine tune
 
-gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case。两块可以提升到每秒110个case左右。(batch size = 32)
+gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case。两块可以提升到每秒110个case左右。
 
 ![img](img/gpu.png)
 
 
-## bert样本数据
+### bert样本数据
 ![img](img/example.png)
 
 
-## 示例结果：
+### 示例结果：
 ![img](img/res.png)
 
 # 模型结构 & 结果评估
----
-Model Architecture     |AUC| Accuracy | Eval Loss | 
---------------|-------: |---------------:|-----------:
-Bert + LR       | 0.8935  | 0.8056         |  0.4195   
-Bert + CNN       | 0.8948  |  0.8092    |  0.4495 
 
-## 主要代码修改
+Model Architecture     |AUC| Accuracy | Eval Loss |
+--------------|-------: |---------------:|-----------:
+Bert_wwm_ext + LR       | 0.8935  | 0.8056        |  0.4195  
+Bert_wwm_ext + TextCNN       | 0.8948  |  0.8092    |  0.4495 
+RoBerta_wwm + LR       | 0.91998  | 0.8393        |  0.3521  
+RoBerta_wwm + TextCNN       | 0.91947  |  0.8357    |  0.4103 
+
+### 主要代码修改
 具体细节参考 
 - bert_my/run_classifier_lr.py
 - bert_my/run_classifier_cnn.py
-- bert_my/run_classifier_rcnn.py
+- bert_my/run_classifier_rcnn.py (TODO)
 
 实现InfoProcessor类与部分模型改动。
 
-### 模型1： BERT+LR
+# 模型1： BERT+LR
 
 使用[CLS]作为句子embedding，[CLS]在pre-train阶段由NSP任务生成。需要接下来fine-tune来完成句子分类。实际上只用[CLS]就能达到很好的效果。
 
 - 论文原注释：The vector C is not meaningful sentence representation without fine-tuning, since it was trained with NSP.
+
+### 是否真的需要NSP任务？
+
+- 在[RoBERTa](https://github.com/wangruichens/papers-machinelearning/blob/master/nlp/%5BRoBERTa%5DRoBERTa:%20A%20Robustly%20Optimized%20BERT%20Pretraining%20Approach.pdf)中提到，NSP任务对于下游任务是不利的。一个推测是NSP的断句使得模型更难学习较长的句子。
 
 ```angular2
 python ./bert_my/run_classifier_lr.py \
@@ -65,11 +71,11 @@ python ./bert_my/run_classifier_lr.py \
   --do_predict=true  \
   --save_for_serving=true  \
   --data_dir=./  \
-  --vocab_file=./bert_model_wwm/vocab.txt  \
-  --bert_config_file=./bert_model_wwm/bert_config.json  \
-  --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
+  --vocab_file=./RoBERTa_wwm/vocab.txt  \
+  --bert_config_file=./RoBERTa_wwm/bert_config.json  \
+  --init_checkpoint=./RoBERTa_wwm/bert_model.ckpt \
   --max_seq_length=64 \
-  --train_batch_size=32 \
+  --train_batch_size=64 \
   --learning_rate=2e-5 \
   --num_train_epochs=4.0 \
   --use_gpu=true \
@@ -101,7 +107,10 @@ TPR-FPR-Threshold 曲线
 
 ![img](img/tpr1.png)
 
-### 模型2： BERT+CNN
+# 模型2： BERT+CNN
+
+textcnn基本结构。采用bert sequence output 作为tokens的 embedding.
+
 ![img](img/textcnn.png)
 ```angular2
 python ./bert_my/run_classifier_cnn.py \
@@ -112,9 +121,9 @@ python ./bert_my/run_classifier_cnn.py \
   --do_predict=true  \
   --save_for_serving=true  \
   --data_dir=./  \
-  --vocab_file=./bert_model_wwm/vocab.txt  \
-  --bert_config_file=./bert_model_wwm/bert_config.json  \
-  --init_checkpoint=./bert_model_wwm/bert_model.ckpt \
+  --vocab_file=./RoBERTa_wwm/vocab.txt  \
+  --bert_config_file=./RoBERTa_wwm/bert_config.json  \
+  --init_checkpoint=./RoBERTa_wwm/bert_model.ckpt \
   --max_seq_length=64 \
   --train_batch_size=64 \
   --learning_rate=2e-5 \
