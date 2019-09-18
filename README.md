@@ -20,6 +20,7 @@ Base bert模型采用的是[中文预训练RoBERTa_wwm](https://github.com/ymcui
 ### 是否真的需要NSP任务？
 
 - 在[RoBERTa](https://github.com/wangruichens/papers-machinelearning/blob/master/nlp/%5BRoBERTa%5DRoBERTa:%20A%20Robustly%20Optimized%20BERT%20Pretraining%20Approach.pdf)中提到，NSP任务对于下游任务是不利的。一个推测是NSP的断句使得模型更难学习较长的句子。
+    - 问题： 没了NSP loss, 如何训练 [CLS] token？
 
 
 
