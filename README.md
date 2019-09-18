@@ -3,13 +3,24 @@
 
 ### Transformer考上了北京大学；CNN进了中等技术学校；RNN在百货公司当售货员：我们都有光明的前途。
 
-## [Bert Introduction & Practice Details](https://github.com/wangruichens/notes/tree/master/bert)
+## Bert 介绍 & 一些细节问题
 
-# 基本介绍
+- [简介](https://github.com/wangruichens/notes/tree/master/bert)
+- [There is not any "sentence embedding" in BERT](https://github.com/google-research/bert/issues/71), [BERT does not generate meaningful sentence vectors](https://github.com/google-research/bert/issues/164)
+- [Only after fine-tuning, [CLS] aka the first token can be a meaningful representation of the whole sentence.](https://github.com/google-research/bert/issues/196)
+- [What are the available pooling strategies?](https://github.com/hanxiao/bert-as-service#q-what-are-the-available-pooling-strategies)
+
+# 项目介绍
 
 Base bert模型采用的是[中文预训练RoBERTa_wwm](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
 
 我的下游任务为文本点击率分级。输入为文章标题，希望能找到其与点击率CTR的关系。个人认为需要模型能够理解语义，判断出究竟哪些标题更吸引人，而不是像word2vec，lda等其他算法学到统计学的特征。
+
+
+### 是否真的需要NSP任务？
+
+- 在[RoBERTa](https://github.com/wangruichens/papers-machinelearning/blob/master/nlp/%5BRoBERTa%5DRoBERTa:%20A%20Robustly%20Optimized%20BERT%20Pretraining%20Approach.pdf)中提到，NSP任务对于下游任务是不利的。一个推测是NSP的断句使得模型更难学习较长的句子。
+
 
 
 ### 模型基线：简体中文阅读理解：CMRC 2018
@@ -66,10 +77,6 @@ RoBerta_wwm + TextCNN       | 0.91947  |  0.8357    |  0.4103
 - The vector C is not meaningful sentence representation without fine-tuning, since it was trained with NSP.
 - The [CLS] representation is fed into an output layer for classification, such as entailment or sentiment analysis.
 
-
-### 是否真的需要NSP任务？
-
-- 在[RoBERTa](https://github.com/wangruichens/papers-machinelearning/blob/master/nlp/%5BRoBERTa%5DRoBERTa:%20A%20Robustly%20Optimized%20BERT%20Pretraining%20Approach.pdf)中提到，NSP任务对于下游任务是不利的。一个推测是NSP的断句使得模型更难学习较长的句子。
 
 ```angular2
 python ./bert_my/run_classifier_lr.py \
@@ -136,7 +143,7 @@ python ./bert_my/run_classifier_cnn.py \
   --max_seq_length=64 \
   --train_batch_size=64 \
   --learning_rate=2e-5 \
-  --num_train_epochs=4.0 \
+  --num_train_epochs=5.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
