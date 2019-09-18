@@ -99,7 +99,7 @@ flags.DEFINE_float(
 	"Proportion of training to perform linear learning rate warmup for. "
 	"E.g., 0.1 = 10% of training.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 1000,
+flags.DEFINE_integer("save_checkpoints_steps", 2000,
                      "How often to save the model checkpoint.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
@@ -238,17 +238,17 @@ class InfoProcessor(DataProcessor):
 	def get_train_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the train set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train2.csv"), delimiter = ','), "train")
+			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
 
 	def get_dev_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the dev set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ','), "eval")
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
 
 	def get_test_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for prediction."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ',',do_predict = True), "test")
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',',do_predict = True), "test")
 
 	def get_labels(self):
 		"""Gets the list of labels for this data set."""
@@ -826,8 +826,9 @@ def main(_):
 
 	if FLAGS.do_train:
 		train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
-		file_based_convert_examples_to_features(
-			train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
+		if not os.path.isfile(train_file):
+			file_based_convert_examples_to_features(
+				train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
 		tf.logging.info("***** Running training *****")
 		tf.logging.info("  Num examples = %d", len(train_examples))
 		tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)

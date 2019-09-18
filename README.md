@@ -1,6 +1,9 @@
 # bert_multi_gpu
+---
 
 ### Transformer考上了北京大学；CNN进了中等技术学校；RNN在百货公司当售货员：我们都有光明的前途。
+
+## [Bert Introduction & Practice Details](https://github.com/wangruichens/notes/tree/master/bert)
 
 # 基本介绍
 
@@ -48,17 +51,21 @@ RoBerta_wwm + TextCNN       | 0.91947  |  0.8357    |  0.4103
 具体细节参考 
 - bert_my/run_classifier_lr.py
 - bert_my/run_classifier_cnn.py
-- bert_my/run_classifier_rcnn.py (TODO)
 
 实现InfoProcessor类与部分模型改动。
 
-模型都在20w左右的训练集上跑了4个epoch。
+20w语料训练集。
 
 # 模型1： BERT+LR
 
+![img](img/lr.png)
+
 使用[CLS]作为句子embedding，[CLS]在pre-train阶段由NSP任务生成。需要接下来fine-tune来完成句子分类。实际上只用[CLS]就能达到很好的效果。
 
-- 论文原注释：The vector C is not meaningful sentence representation without fine-tuning, since it was trained with NSP.
+论文原文：
+- The vector C is not meaningful sentence representation without fine-tuning, since it was trained with NSP.
+- The [CLS] representation is fed into an output layer for classification, such as entailment or sentiment analysis.
+
 
 ### 是否真的需要NSP任务？
 
@@ -79,7 +86,7 @@ python ./bert_my/run_classifier_lr.py \
   --max_seq_length=64 \
   --train_batch_size=64 \
   --learning_rate=2e-5 \
-  --num_train_epochs=4.0 \
+  --num_train_epochs=5.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
@@ -166,12 +173,4 @@ TPR-FPR-Threshold 曲线
     # Ideal order : conv -> bn -> activation -> max pooling -> dropout -> dense(softmax)
     # Same as : conv -> bn -> max pooling -> activation -> dropout -> dense(softmax) [faster]
     # Since ReLU is monotonic (if a > b, ReLU(a) >= ReLU(b)).
-
-## Sevrving as service
-
-
-
-
-
-
 

@@ -99,7 +99,7 @@ flags.DEFINE_float(
 	"Proportion of training to perform linear learning rate warmup for. "
 	"E.g., 0.1 = 10% of training.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 1000,
+flags.DEFINE_integer("save_checkpoints_steps", 3000,
                      "How often to save the model checkpoint.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
@@ -239,17 +239,17 @@ class InfoProcessor(DataProcessor):
 	def get_train_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the train set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train2.csv"), delimiter = ','), "train")
+			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
 
 	def get_dev_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the dev set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ','), "eval")
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
 
 	def get_test_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for prediction."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval2.csv"), delimiter = ',', do_predict = True), "test")
+			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',', do_predict = True), "test")
 
 	def get_labels(self):
 		"""Gets the list of labels for this data set."""
@@ -496,7 +496,9 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 		for i, filter_size in enumerate(filter_sizes):
 			with tf.variable_scope("conv-maxpool-%s" % filter_size, reuse = False):
 				# conv
-				conv = tf.layers.conv1d(output_layer, num_filters, filter_size, name = 'conv1d',activation=tf.nn.relu)
+				conv = tf.layers.conv1d(output_layer, num_filters, filter_size,
+				                        name = 'conv1d',activation=tf.nn.relu,
+				                        kernel_initializer = tf.initializers.glorot_normal())
 				# bn
 				# max pooling
 
@@ -520,7 +522,8 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 			net = tf.nn.dropout(net, keep_prob=0.9)
 
 	with tf.name_scope('logits'):
-		logits = tf.layers.dense(net, num_labels, name = 'logits')
+		logits = tf.layers.dense(net, num_labels, name = 'logits',
+		                         kernel_initializer = tf.initializers.glorot_normal())
 		probabilities = tf.nn.softmax(logits)
 		log_probs = tf.nn.log_softmax(logits, axis = -1)
 	# y_pred_cls = tf.argmax(tf.nn.softmax(logits), 1)
@@ -843,8 +846,10 @@ def main(_):
 
 	if FLAGS.do_train:
 		train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
-		file_based_convert_examples_to_features(
-			train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
+
+		if not os.path.isfile(train_file):
+			file_based_convert_examples_to_features(
+				train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
 		tf.logging.info("***** Running training *****")
 		tf.logging.info("  Num examples = %d", len(train_examples))
 		tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
