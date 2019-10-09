@@ -10,7 +10,7 @@
 - [Only after fine-tuning, [CLS] aka the first token can be a meaningful representation of the whole sentence.](https://github.com/google-research/bert/issues/196)
 - [What are the available pooling strategies?](https://github.com/hanxiao/bert-as-service#q-what-are-the-available-pooling-strategies)
 
-# 项目介绍
+# Introduction
 
 Base bert模型采用的是[中文预训练RoBERTa_wwm](https://github.com/ymcui/Chinese-BERT-wwm)。与bert或者bert-wwm的主要区别在于使用了extended data，并在数据集上迭代了更多步（100k -> 1M）。
 
@@ -50,7 +50,7 @@ gpu性能基本都是跑满的。一块1080ti大概每秒可以训练60个case�
 ### 示例结果：
 ![img](img/res.png)
 
-# 模型结构 & 结果评估
+# Model Structure & Result Evaluation
 
 Model Architecture     |AUC| Accuracy | Eval Loss |
 --------------|-------: |---------------:|-----------:
@@ -68,7 +68,7 @@ RoBerta_wwm + TextCNN       | 0.91947  |  0.8357    |  0.4103
 
 20w语料训练集。
 
-# 模型1： BERT+LR
+## Model 1： BERT + LR Classification
 
 ![img](img/lr.png)
 
@@ -84,7 +84,7 @@ python ./bert_my/run_classifier_lr.py \
   --task_name=info \
   --do_lower_case=true  \
   --do_train=true  \
-  --do_eval=true  \
+  --do_eval=false  \
   --do_predict=true  \
   --save_for_serving=true  \
   --data_dir=./  \
@@ -92,9 +92,9 @@ python ./bert_my/run_classifier_lr.py \
   --bert_config_file=./RoBERTa_wwm/bert_config.json  \
   --init_checkpoint=./RoBERTa_wwm/bert_model.ckpt \
   --max_seq_length=64 \
-  --train_batch_size=64 \
+  --train_batch_size=32 \
   --learning_rate=2e-5 \
-  --num_train_epochs=5.0 \
+  --num_train_epochs=9999.0 \
   --use_gpu=true \
   --num_gpu_cores=2 \
   --use_fp16=true \
@@ -124,7 +124,7 @@ TPR-FPR-Threshold 曲线
 
 ![img](img/tpr1.png)
 
-# 模型2： BERT+CNN
+## Model 2： BERT+CNN
 
 textcnn基本结构。采用bert sequence output 作为tokens的 embedding.
 
@@ -182,3 +182,26 @@ TPR-FPR-Threshold 曲线
     # Same as : conv -> bn -> max pooling -> activation -> dropout -> dense(softmax) [faster]
     # Since ReLU is monotonic (if a > b, ReLU(a) >= ReLU(b)).
 
+## Model 3: BERT + LR Regression
+
+```angular2
+python ./bert_my/run_regression_lr.py \
+  --task_name=info \
+  --do_lower_case=true  \
+  --do_train=true  \
+  --do_eval=false  \
+  --do_predict=true  \
+  --save_for_serving=true  \
+  --data_dir=./  \
+  --vocab_file=./RoBERTa_wwm/vocab.txt  \
+  --bert_config_file=./RoBERTa_wwm/bert_config.json  \
+  --init_checkpoint=./RoBERTa_wwm/bert_model.ckpt \
+  --max_seq_length=64 \
+  --train_batch_size=32 \
+  --learning_rate=2e-5 \
+  --num_train_epochs=9999.0 \
+  --use_gpu=true \
+  --num_gpu_cores=2 \
+  --use_fp16=true \
+  --output_dir=./output_reg
+```
