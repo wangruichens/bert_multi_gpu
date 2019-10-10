@@ -184,6 +184,10 @@ TPR-FPR-Threshold 曲线
 
 ## Model 3: BERT + LR Regression
 
+[regression遇到的一个问题](https://github.com/keras-team/keras/issues/6447)
+
+直接拟合真实值：
+
 ```angular2
 python ./bert_my/run_regression_lr.py \
   --task_name=info \
@@ -205,3 +209,43 @@ python ./bert_my/run_regression_lr.py \
   --use_fp16=true \
   --output_dir=./output_reg
 ```
+
+训练loss: 
+
+![img](img/loss3.png)
+
+相关性 = 0.637，采用类似方法+GBDT大概可以跑到0.617。 还是有一些优势的。 
+
+分布：
+
+![img](img/pearson.png)
+
+## Model 4: BERT + LR Regression (分级)
+
+与原代码相同，只是数据不同
+
+```angular2
+python ./bert_my/run_regression_lr.py \
+  --task_name=info \
+  --do_lower_case=true  \
+  --do_train=true  \
+  --do_eval=false  \
+  --do_predict=true  \
+  --save_for_serving=true  \
+  --data_dir=./  \
+  --vocab_file=./RoBERTa_wwm/vocab.txt  \
+  --bert_config_file=./RoBERTa_wwm/bert_config.json  \
+  --init_checkpoint=./RoBERTa_wwm/bert_model.ckpt \
+  --max_seq_length=64 \
+  --train_batch_size=32 \
+  --learning_rate=2e-5 \
+  --num_train_epochs=9999.0 \
+  --use_gpu=true \
+  --num_gpu_cores=2 \
+  --use_fp16=true \
+  --output_dir=./output_reg
+```
+
+模型最终选择出来的资讯，实际点击率分布更优秀一些。
+
+![img](img/res4.png)
