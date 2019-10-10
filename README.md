@@ -222,7 +222,9 @@ python ./bert_my/run_regression_lr.py \
 
 ## Model 4: BERT + LR Regression (分级)
 
-与原代码相同，只是数据不同
+与原代码相同，只是数据不同,将点击率从低到高依次分为0,1,2,3四个等级。
+
+![img](img/loss4.png)
 
 ```angular2
 python ./bert_my/run_regression_lr.py \
