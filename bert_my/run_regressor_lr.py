@@ -99,7 +99,7 @@ flags.DEFINE_float(
 	"Proportion of training to perform linear learning rate warmup for. "
 	"E.g., 0.1 = 10% of training.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 1000,
+flags.DEFINE_integer("save_checkpoints_steps", 2000,
                      "How often to save the model checkpoint.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
@@ -235,17 +235,17 @@ class InfoProcessor(DataProcessor):
 	def get_train_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the train set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "train.csv"), delimiter = ','), "train")
+			self._read_tsv(os.path.join(data_dir, "train4.csv"), delimiter = ','), "train")
 
 	def get_dev_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for the dev set."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ','), "eval")
+			self._read_tsv(os.path.join(data_dir, "eval4.csv"), delimiter = ','), "eval")
 
 	def get_test_examples(self, data_dir):
 		"""Gets a collection of `InputExample`s for prediction."""
 		return self._create_examples(
-			self._read_tsv(os.path.join(data_dir, "eval.csv"), delimiter = ',', do_predict = True), "test")
+			self._read_tsv(os.path.join(data_dir, "eval5.csv"), delimiter = ',', do_predict = True), "test")
 
 	def get_labels(self):
 		"""Gets the list of labels for this data set."""
